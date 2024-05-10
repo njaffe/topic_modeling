@@ -1,4 +1,3 @@
-# from https://soulheartgrit.medium.com/see-how-easily-you-can-transform-pdfs-into-sleek-markdown-without-complex-tools-819aea4940a0
 
 import os
 from pdfminer.high_level import extract_text
