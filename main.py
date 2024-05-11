@@ -1,6 +1,13 @@
+import os
+import sys
+
 from utils.convert_to_md import convert_to_md
 from utils.create_database import create_database
 from utils.query_database import query_database
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+from config import API_KEY, DATA_PATH, CHROMA_PATH
+
 
 def main():
     print("Hello from main.py")

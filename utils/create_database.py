@@ -1,17 +1,18 @@
-from langchain_community.document_loaders import DirectoryLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
-
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
 import os
 import shutil
+import sys
 
-api_key = os.environ["OPENAI_API_KEY"]
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.schema import Document
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_community.document_loaders import DirectoryLoader
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+from config import API_KEY, DATA_PATH, CHROMA_PATH
 
 
 def load_documents():
-    # loader = DirectoryLoader(DATA_PATH, glob="*.md")
     loader = DirectoryLoader(DATA_PATH, glob="*.txt")
     documents = loader.load()
     return documents
@@ -40,7 +41,7 @@ def save_to_chroma(chunks):
     # Create a new DB from the documents.
     db = Chroma.from_documents(
         chunks,
-        OpenAIEmbeddings(openai_api_key=api_key),
+        OpenAIEmbeddings(openai_api_key=API_KEY),
         persist_directory=CHROMA_PATH
     )
     db.persist()
@@ -53,7 +54,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # DATA_PATH = "data/markdowns"
-    DATA_PATH = "data"
-    CHROMA_PATH = "chroma"
     main()

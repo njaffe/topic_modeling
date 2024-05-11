@@ -1,20 +1,14 @@
 import argparse
 import os
-from langchain_openai import OpenAIEmbeddings
+import sys
+
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
-api_key = os.environ["OPENAI_API_KEY"]
-CHROMA_PATH = "chroma"
-PROMPT_TEMPLATE = """
-        Answer the question based on the following context:
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+from config import API_KEY, CHROMA_PATH, PROMPT_TEMPLATE
 
-        {context_text}
-        ---
-
-        Answer the question based on the above context: {query}
-    """
 
 def load_args_db():
     # CLI arg parsing
@@ -24,12 +18,12 @@ def load_args_db():
     query_text = args.query_text
 
     # Load the database
-    embedding_function = OpenAIEmbeddings(openai_api_key=api_key)
+    embedding_function = OpenAIEmbeddings(openai_api_key=API_KEY)
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
     return db, query_text
 
-def create_context_and_prompt(db, query_text, similarity=False):
-    print("Querying database")
+def create_context_and_prompt(db, query_text, show_similarity=False):
+    print("\nQuerying database\n")
 
     # Create context
     
@@ -50,7 +44,7 @@ def create_context_and_prompt(db, query_text, similarity=False):
     
     # Create prompt
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-    if similarity:
+    if show_similarity:
         prompt = prompt_template.format(context_text=context_text_sim, query=query_text)
     else:
         prompt = prompt_template.format(context_text=context_text, query=query_text)
@@ -62,7 +56,7 @@ def query_database():
     prompt = create_context_and_prompt(db, query_text)
 
     model = ChatOpenAI()
-    response_text = model.invoke(prompt)
+    response_text = model.invoke(prompt).content
     print(f"\n{response_text}\n")
 
 if __name__ == "__main__":
