@@ -20,19 +20,18 @@ def load_args_db():
     # Load the database
     embedding_function = OpenAIEmbeddings(openai_api_key=API_KEY)
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
-    return db, query_text
+    return query_text, db 
 
-def create_context_and_prompt(db, query_text, show_similarity=False):
-    print("\nQuerying database\n")
+def create_context_and_prompt(query_text, db, show_similarity=False):
+    """
+    Create the context and prompt for the query.
+    """
 
     # Create context
-    
+    print("\nCreating context.\n")
     # Method 1: Simple similarity search
     context_results = db.similarity_search(query_text)
-    # print(f"doc 1 metadata: {results[0].metadata}")
-    # print(f"{results[0].page_content}")
     context_text = "\n\n---\n\n".join([doc.page_content for doc in context_results])
-    # print(context_text)
 
     # Method 2: Search with relevance scores
     context_results_with_sim = db.similarity_search_with_relevance_scores(query_text, k=3)
@@ -40,9 +39,9 @@ def create_context_and_prompt(db, query_text, show_similarity=False):
         print("No results found.")
         return
     context_text_sim = "\n\n---\n\n".join([doc.page_content for doc, _score in context_results_with_sim])
-    # print(context_text_sim)
     
     # Create prompt
+    print("\nCreating prompt.\n")  
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     if show_similarity:
         prompt = prompt_template.format(context_text=context_text_sim, query=query_text)
@@ -50,12 +49,24 @@ def create_context_and_prompt(db, query_text, show_similarity=False):
         prompt = prompt_template.format(context_text=context_text, query=query_text)
     return prompt
 
+def query_database(verbose=False):
+    """
+    Query the database.
+    """
+    # Load the query text and database
+    query_text, db = load_args_db()
 
-def query_database():
-    db, query_text = load_args_db()
-    prompt = create_context_and_prompt(db, query_text)
+    # Create context and prompt
+    prompt = create_context_and_prompt(query_text, db)
 
+    # Define LLM
     model = ChatOpenAI()
+
+    if verbose:
+        # print(f"\nQuerying the database with the following prompt:\n\n{prompt}\n")
+        print(f"\nQuerying the database with the following query:\n\n{query_text}\n")
+
+    # Query LLM
     response_text = model.invoke(prompt).content
     print(f"\n{response_text}\n")
 

@@ -1,7 +1,7 @@
 import os
 import sys
 
-from utils.convert_to_md import convert_to_md
+from utils.convert_to_md import process_inputs_in_directory
 from utils.create_database import create_database
 from utils.query_database import query_database
 
@@ -10,10 +10,8 @@ from config import API_KEY, DATA_PATH, CHROMA_PATH
 
 
 def main():
-    print("Hello from main.py")
-    convert_to_md() # works on its own
-    create_database() # works on its own
-    # next steps: query, add argparse
+    process_inputs_in_directory()
+    create_database()
     query_database()
 
 if __name__ == "__main__":

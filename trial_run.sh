@@ -8,7 +8,7 @@ if [ $? -eq 0 ]; then
     echo "create_database.py ran successfully, running query_database.py"
     
     # Run query_database.py
-    python3 utils/query_database.py
+    python3 utils/query_database.py "What happens when I block a 4/4 creature with trample and deathtouch with a 1/1 creature?"
 
     if [ $? -eq 0 ]; then
         echo "query_database.py ran successfully"

@@ -15,7 +15,7 @@ def convert_to_markdown(text):
             lines[i] = f"## {stripped}"
     return "\\\\n".join(lines)
 
-def process_pdfs_in_directory():
+def process_inputs_in_directory():
     for filename in os.listdir(PDF_DIRECTORY):
         if filename.endswith(".pdf"):
             markdown_filename = filename.replace(".pdf", "_markdown.md")
@@ -41,4 +41,4 @@ def process_pdfs_in_directory():
 
 
 if __name__ == "__main__":
-    process_pdfs_in_directory()
+    process_inputs_in_directory()
