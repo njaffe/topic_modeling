@@ -11,7 +11,8 @@ api_key = os.environ["OPENAI_API_KEY"]
 
 
 def load_documents():
-    loader = DirectoryLoader(DATA_PATH, glob="*.md")
+    # loader = DirectoryLoader(DATA_PATH, glob="*.md")
+    loader = DirectoryLoader(DATA_PATH, glob="*.txt")
     documents = loader.load()
     return documents
 
@@ -52,6 +53,7 @@ def main():
 
 
 if __name__ == "__main__":
-    DATA_PATH = "data/markdowns"
+    # DATA_PATH = "data/markdowns"
+    DATA_PATH = "data"
     CHROMA_PATH = "chroma"
     main()
