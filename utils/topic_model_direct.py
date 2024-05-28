@@ -20,7 +20,7 @@ def read_comment_text_to_df(excel_file_path, sheet_name, column_name):
     
     return df[column_name].tolist()
 
-def perform_topic_modeling(docs, n_topics=20, file_name='topic_summaries.csv'):
+def perform_topic_modeling(docs, n_topics=21, file_name='topic_summaries.csv'):
     print("\nPerforming topic modeling...\n")
 
     # initialize model

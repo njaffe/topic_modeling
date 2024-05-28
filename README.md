@@ -13,6 +13,4 @@ workflow #1
 workflow #2
 - import csv
 - use bertopic directly?
-    - because it is already english, i don't need to convert to OpenAI vectors?
-    - no, need same embeddings as model
-    - conceptually, we 
+    - because it is already english, i don't need to convert to OpenAI vectors? yes
