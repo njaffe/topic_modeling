@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from bertopic import BERTopic
 
+
 def read_comment_text_to_df(excel_file_path, sheet_name, column_name):
     print("\nreading data...\n")
     # Read the specified sheet and column
@@ -19,54 +20,61 @@ def read_comment_text_to_df(excel_file_path, sheet_name, column_name):
     
     return df[column_name].tolist()
 
-def perform_topic_modeling(docs, n_topics=20):
+def perform_topic_modeling(docs, n_topics=20, file_name='topic_summaries.csv'):
     print("\nPerforming topic modeling...\n")
-    # Initialize BERTopic
-    topic_model = BERTopic()
-    
-    # # Fit the model on the documents
-    # original_topics, original_probabilities = topic_model.fit_transform(documents)
 
-    # # specify the number of topics
-    # updated_topics, updated_probs = topic_model.update_topics(documents, original_topics, n_topics)
+    # initialize model
+    topic_model = BERTopic(nr_topics=n_topics)
+
+    # fit model
     topics, probabilities = topic_model.fit_transform(docs)
-    topic_model.reduce_topics(docs, nr_topics=20)
 
-    topics = topic_model.topics_ # returns list of topics for each doc
+    # adjust model to have correct number topics
+    topic_model.reduce_topics(docs, nr_topics=n_topics)
 
-    freq = topic_model.get_topic_info()
-    
-    print("\ntopic info\n")
-    print(freq.head(10))
+    # get topics
+    topics = topic_model.topics_  # returns list of topics for each doc 
 
-    # Print topics and their probabilities
-    print("\nlisting topics...\n")
-    for topic, prob in list(zip(topics, probabilities))[:10]:
-        print(f"Topic: {topic}, Probability: {prob}")
+    # topic summary df
+    topic_summary_df = topic_model.get_topic_info()  # This gives a summary of all topics
     
     # Get the most representative document for each topic
-    print("\ngetting representative docs...\n")
-    # representative_docs = topic_model.get_representative_docs()
     topic_rep = topic_model.get_representative_docs()
 
-    # Print the most representative document for each topic
-    for topic, (doc_id, prob) in topic_rep.items():
-        print(f"Topic {topic}: Document {doc_id} with probability {prob}")
-
-def main(excel_file_path, sheet_name, column_name):
-    documents = read_comment_text_to_df(
-        excel_file_path=excel_file_path,
-        sheet_name=sheet_name,
-        column_name=column_name)
+    print(f"\n topics type: {type(topics)}, topics shape: {len(topics)}, \n")
+    print(f"\n topic_rep type: {type(topic_rep)}, topic_rep shape: {len(topic_rep)}, \n")
     
-    # Perform topic modeling on the retrieved documents
+    print("\ntopics and representative docs:\n")
+    for topic, rep_doc in topic_rep.items(): 
+        print(f"Topic {topic}: Document {rep_doc}\n")
+    
+    # print("topic_summary_df:")
+    # print(topic_summary_df.head(5))
+
+    # remove the first row which is the [the, of, to, in, and, for, on, was, is, after] column
+    topic_summary_df = topic_summary_df.iloc[1:,:]
+
+    print("topic_summary_df:")
+    print(topic_summary_df.head(5))
+
+    # save topic summaries to csv
+    topic_summary_df.to_csv(file_name, index=False)
+    print(f"Saved topic summaries to {file_name}")
+    return topics, topic_rep, topic_summary_df
+
+def main():
+    documents = read_comment_text_to_df(
+        excel_file_path = EXCEL_FILE_PATH,
+        sheet_name = SHEET_NAME,
+        column_name = COLUMN_NAME)
+    
     perform_topic_modeling(documents)
 
 if __name__ == "__main__":
-    excel_file_path = 'data/fox_news_comments.xlsx'
-    # sheet_name = "comments_for_published_articles"
-    sheet_name = "articles_data"
-    # column_name = "text_content"
-    column_name = "description"
+    EXCEL_FILE_PATH = 'data/fox_news_comments.xlsx'
+    SHEET_NAME = "articles_data"
+    COLUMN_NAME = "description"
+    # SHEET_NAME = "comments_for_published_articles"
+    # COLUMN_NAME = "text_content"
 
-    main(excel_file_path,sheet_name,column_name)
+    main()
