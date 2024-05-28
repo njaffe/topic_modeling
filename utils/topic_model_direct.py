@@ -20,7 +20,7 @@ def read_comment_text_to_df(excel_file_path, sheet_name, column_name):
     
     return df[column_name].tolist()
 
-def perform_topic_modeling(docs, n_topics=21, file_name='topic_summaries.csv'):
+def perform_topic_modeling(docs, n_topics=21, output_file_path='outputs/topic_summaries.csv'):
     print("\nPerforming topic modeling...\n")
 
     # initialize model
@@ -58,22 +58,27 @@ def perform_topic_modeling(docs, n_topics=21, file_name='topic_summaries.csv'):
     print(topic_summary_df.head(5))
 
     # save topic summaries to csv
-    topic_summary_df.to_csv(file_name, index=False)
-    print(f"Saved topic summaries to {file_name}")
+    topic_summary_df.to_csv(output_file_path, index=False)
+    print(f"Saved topic summaries to {output_file_path}")
     return topics, topic_rep, topic_summary_df
 
 def main():
     documents = read_comment_text_to_df(
-        excel_file_path = EXCEL_FILE_PATH,
-        sheet_name = SHEET_NAME,
-        column_name = COLUMN_NAME)
+        excel_file_path=EXCEL_FILE_PATH,
+        sheet_name=SHEET_NAME,
+        column_name=COLUMN_NAME)
     
-    perform_topic_modeling(documents)
+    perform_topic_modeling(
+       docs=documents,
+        n_topics=NTOPICS,
+        output_file_path=OUTPUT_FILE_PATH)
 
 if __name__ == "__main__":
     EXCEL_FILE_PATH = 'data/fox_news_comments.xlsx'
     SHEET_NAME = "articles_data"
     COLUMN_NAME = "description"
+    NTOPICS = 21
+    OUTPUT_FILE_PATH = 'outputs/topic_summaries.csv'
     # SHEET_NAME = "comments_for_published_articles"
     # COLUMN_NAME = "text_content"
 
