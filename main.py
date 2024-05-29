@@ -2,7 +2,7 @@ import os
 import sys
 
 from utils.topic_model import topic_model_names_summaries
-from utils.parse_excel import compile_data
+from utils.gather_engagements import compile_data
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 from config import API_KEY, DATA_PATH, CHROMA_PATH
