@@ -32,7 +32,7 @@ def read_single_column(
 def topic_model(
     name_summary_dict,
     n_topics=21,
-    verbose=True,
+    verbose=False,
     topic_summary_output_file_path='outputs/topic_summaries.csv',
     doc_topic_output_file_path='outputs/doc_topic_df.csv'):
 
@@ -66,15 +66,19 @@ def topic_model(
     assert len(doc_names) == len(doc_topic_df), \
         "Error: Length of name_summary_dict does not match length of doc_topic_df"
     doc_topic_df['Document_name'] = doc_names
+
+    # look at the number of docs per topic
+    print("\nNumbers per topic:")
+    print(doc_topic_df['Topic'].value_counts().sort_index())
     doc_topic_df = doc_topic_df[doc_topic_df['Topic'] != -1]  # remove docs that don't belong to any topic
 
     if verbose:
         print("\ndoc_topic_df:\n")
         print(doc_topic_df.head(5))
 
-
     # create topic summary df
     topic_summary_df = topic_model.get_topic_info()  # This gives a summary of all topics
+
     topic_summary_df = topic_summary_df[topic_summary_df['Count'] > 0]  # remove topics with no docs
     topic_summary_df = topic_summary_df[topic_summary_df['Topic'] != -1]  # remove docs that don't belong to any topic
     if verbose:

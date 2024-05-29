@@ -38,4 +38,5 @@ if __name__ == "__main__":
     COMMENT_COLS = ['conversation_id', 'author_id', 'written_date', 'text_content']
     OUTPUT_FILE_PATH = 'outputs/engagements.csv'
     DOC_TOPIC_DF = 'outputs/doc_topic_df.csv'
+
     main()
