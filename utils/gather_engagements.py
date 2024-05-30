@@ -166,12 +166,17 @@ def compile_data(n_articles_to_keep=10, n_comments_to_keep=4):
 
             reformatted_comment_level_dict = dict(d)
             reformatted_comment_level_df = pd.DataFrame(reformatted_comment_level_dict)
-            reformatted_comment_level_df.reset_index(drop=True, inplace=True)
+            reformatted_comment_level_df.reset_index(drop=True)
+
+            # reformatted_comment_level_df.to_csv('intermediate.csv', index=False)
 
             # join back with other columns
             topic_df_article_level = topic_df.drop(columns=message_level_cols).drop_duplicates()
-            topic_df_article_level = topic_df_article_level.reset_index(drop=True, inplace=True)
-            res_reformatted_df = pd.concat([topic_df_article_level, reformatted_comment_level_df], axis=1, join='outer', ignore_index=False)
+            topic_df_article_level = topic_df_article_level.reset_index(drop=True)
+
+            # topic_df_article_level.to_csv('intermediate.csv', index=False)
+
+            res_reformatted_df = pd.concat([topic_df_article_level, reformatted_comment_level_df], axis=1, ignore_index=False)
 
             if not res_reformatted_df.empty:
                 res_reformatted_df.to_excel(writer, sheet_name=sanitized_topic[:31], index=False)  # Excel sheet names must be <= 31 chars
