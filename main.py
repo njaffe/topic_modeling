@@ -10,8 +10,8 @@ from config import API_KEY, DATA_PATH, CHROMA_PATH
 
 def main():
     process_inputs_in_directory()
-    create_database()
-    query_database()
+    topic_model_names_summaries()
+    create_topics_spreadsheet()
 
 if __name__ == "__main__":
     EXCEL_FILE_PATH = "data/fox_news_comments.xlsx"

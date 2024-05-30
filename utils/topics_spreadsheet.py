@@ -23,30 +23,39 @@ def read_cols(
     print(df.columns)
     return df
 
-def compile_data():
+def compile_data(verbose=False):
 
     print("\nreading data...\n")
     comment_data = read_cols(
         excel_file_path=EXCEL_FILE_PATH,
         sheet_name=COMMENT_SHEET_NAME,
         column_names=COMMENT_COLS)
-    comment_data = comment_data[comment_data['final_state'] != 'blocked'] # remove blocked comments
-    
+
+    print("-------------------")
+    print(f"comment_data['conversation_id'].nunique(): {comment_data['conversation_id'].nunique()}")
+    print("-------------------")
+    print(f"removing {comment_data[comment_data['final_state'] == 'blocked'].shape[0]} blocked comments...")
+    comment_data = comment_data[comment_data['final_state'] != 'blocked'] # remove blocked comments ~28K
+
     reaction_data = read_cols(
         excel_file_path=EXCEL_FILE_PATH,
         sheet_name=REACTION_SHEET_NAME,
         column_names=REACTION_COLS)
-    
+
     article_data = read_cols(
         excel_file_path=EXCEL_FILE_PATH,
         sheet_name=ARTICLE_SHEET_NAME,
         column_names=ARTICLE_COLS)
     
     doc_topic_df = pd.read_csv(DOC_TOPIC_DF)
+    if verbose:
+        print("\nchecking for missing values and duplicates in doc topic...\n")
+        print(doc_topic_df.isna().sum())
+        print(doc_topic_df.duplicated().sum())
 
-    print("\nchecking for duplicates...\n")
-    article_data = article_data.drop_duplicates(subset=['canonical_url', 'title'])
-    comment_data = comment_data.drop_duplicates(subset=['conv_message_id'])
+    # print("\nchecking for duplicates...\n")
+    # article_data = article_data.drop_duplicates(subset=['canonical_url', 'title'])
+    # comment_data = comment_data.drop_duplicates(subset=['conv_message_id'])
 
     print("\nmerging data...\n")
     compiled_df = comment_data \
@@ -54,16 +63,42 @@ def compile_data():
         .merge(article_data, how='left', on='conversation_id') \
         .merge(doc_topic_df, how='left', left_on='description', right_on='Document_description')
     
+    # compiled_df.to_csv('intermediate.csv', index=False)
+    if verbose:
+        print("-------------------")
+
+        print("comparison 1")
+        comment_ids = set(comment_data['conv_message_id'].unique())
+        reaction_ids = set(reaction_data['message_id'].unique())
+        overlap1 = len(comment_ids.intersection(reaction_ids))
+        print(f"Overlap between 'conv_message_id' in comment_data and 'message_id' in reaction_data: {overlap1}")
+
+        print("comparison 2")
+        comment_conv_ids = set(comment_data['conversation_id'].unique())
+        article_conv_ids = set(article_data['conversation_id'].unique())
+        overlap2 = len(comment_conv_ids.intersection(article_conv_ids))
+        print(f"Overlap between 'conversation_id' in comment_data and 'conversation_id' in article_data: {overlap2}")
+
+        print("comparison 3")
+        article_desc = set(article_data['description'].unique())
+        doc_topic_desc = set(doc_topic_df['Document_description'].unique())
+        overlap3 = len(article_desc.intersection(doc_topic_desc))
+        print(f"Overlap between 'description' in article_data and 'Document_description' in doc_topic_df: {overlap3}")
+
+        print("-------------------")
+
     # ensure no duplicate rows
     assert compiled_df.shape[0] == compiled_df.drop_duplicates().shape[0], "Duplicate rows found"
 
     print("\nchecking for missing topics...\n")
-    compiled_df['Topic'].fillna('missing', inplace=True)
-    print(f"{compiled_df[compiled_df['Topic'] == 'missing'].shape[0]} out of {compiled_df.shape[0]} comments are missing topics")
+    compiled_df['Topic'] = compiled_df['Topic'].fillna(-1).astype(int)
+
+
+    print(f"{compiled_df[compiled_df['Topic'] == -1].shape[0]} out of {compiled_df.shape[0]} comments are missing topics")
     # print(compiled_df.head(5))
 
     # remove rows with missing topics
-    compiled_df = compiled_df[compiled_df['Topic']!= 'missing']
+    compiled_df = compiled_df[compiled_df['Topic']>=0]
 
     print("\nCleaning up columns...\n")
     compiled_df['total_likes'] = compiled_df['total_likes'].replace('missing', np.nan)
@@ -116,7 +151,9 @@ def get_top_articles_df(compiled_df:pd.DataFrame):
     # Combine top articles and top comments back into a single DataFrame
     top_comments_df_sorted = top_comments_df.sort_values(by=['Topic', 'conversation_id', 'conv_message_id', 'total_likes'], ascending=[True, True, True, False])
 
-    assert top_comments_df_sorted.shape[0] == top_comments_df_sorted.drop_duplicates().shape[0], "Duplicate rows found"
+    # assert top_comments_df_sorted.shape[0] == top_comments_df_sorted.drop_duplicates().shape[0], "Duplicate rows found"
+
+    top_comments_df_sorted = top_comments_df_sorted.drop_duplicates(subset=['conversation_id', 'conv_message_id'])
 
     # print("\nwriting to file...\n")
     # top_comments_df_sorted.to_csv(TOPICS_SPREADSHEET_OUTPUT_FILE_PATH, index=False)
@@ -196,7 +233,7 @@ def write_to_excel(top_comments_df_sorted:pd.DataFrame):
             raise Exception("No sheets added. Ensure there is data for at least one topic.")
 
 def create_topics_spreadsheet():
-    compiled_df = compile_data()
+    compiled_df = compile_data(verbose=VERBOSE)
     top_comments_df_sorted = get_top_articles_df(compiled_df)
     write_to_excel(top_comments_df_sorted)
 
@@ -205,13 +242,15 @@ if __name__ == "__main__":
     # constants
     N_ARTICLES=10
     N_COMMENTS=4
+    VERBOSE = True
 
     # input files
     EXCEL_FILE_PATH = "data/fox_news_comments.xlsx"
     ARTICLE_SHEET_NAME = "articles_data"
     COMMENT_SHEET_NAME = "comments_for_published_articles"
     REACTION_SHEET_NAME = "reaction_count_for_pub_articles"
-    DOC_TOPIC_DF = 'outputs/doc_topic_df.csv'
+    # DOC_TOPIC_DF = 'outputs/doc_topic_df.csv'
+    DOC_TOPIC_DF = 'outputs/doc_topic_df_openai.csv'
 
     # column cleanup
     COMMENT_COLS = ['conversation_id', 'conv_message_id', 'author_id', 'written_date', 'text_content', 'final_state']
@@ -223,4 +262,3 @@ if __name__ == "__main__":
     TOPICS_SPREADSHEET_OUTPUT_FILE_PATH = 'outputs/top_comments_df_sorted.csv'
 
     create_topics_spreadsheet()
-# issue appears to be that topic modeling put many articles into the -1 topic, which is not included in the topic summary, and this results in many nulls when joined
