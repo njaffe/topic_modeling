@@ -104,7 +104,7 @@ def topic_model_names_summaries():
     
     topic_model(
         name_summary_dict=dict(zip(doc_names, doc_summaries)),
-        n_topics=NTOPICS,
+        n_topics=N_TOPICS,
         topic_summary_output_file_path=TOPIC_SUMMARY_OUTPUT_FILE_PATH,
         doc_topic_output_file_path=DOC_TOPIC_OUTPUT_FILE_PATH)
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     SHEET_NAME = "articles_data"
     NAME_COLUMN_NAME = "title"
     SUMMARY_COLUMN_NAME = "description"
-    NTOPICS = 21
+    N_TOPICS = 21
     TOPIC_SUMMARY_OUTPUT_FILE_PATH = "outputs/topic_summaries.csv"
     DOC_TOPIC_OUTPUT_FILE_PATH = "outputs/doc_topic_df.csv"
 

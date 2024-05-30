@@ -23,7 +23,7 @@ def read_cols(
     print(df.columns)
     return df
 
-def compile_data(n_articles_to_keep=10, n_comments_to_keep=4):
+def compile_data():
 
     print("\nreading data...\n")
     comment_data = read_cols(
@@ -49,32 +49,32 @@ def compile_data(n_articles_to_keep=10, n_comments_to_keep=4):
     comment_data = comment_data.drop_duplicates(subset=['conv_message_id'])
 
     print("\nmerging data...\n")
-    res_df = comment_data \
+    compiled_df = comment_data \
         .merge(reaction_data, how='right', left_on='conv_message_id', right_on='message_id') \
         .merge(article_data, how='left', on='conversation_id') \
         .merge(doc_topic_df, how='left', left_on='description', right_on='Document_description')
     
     # ensure no duplicate rows
-    assert res_df.shape[0] == res_df.drop_duplicates().shape[0], "Duplicate rows found"
+    assert compiled_df.shape[0] == compiled_df.drop_duplicates().shape[0], "Duplicate rows found"
 
     print("\nchecking for missing topics...\n")
-    res_df['Topic'].fillna('missing', inplace=True)
-    print(f"{res_df[res_df['Topic'] == 'missing'].shape[0]} out of {res_df.shape[0]} comments are missing topics")
-    # print(res_df.head(5))
+    compiled_df['Topic'].fillna('missing', inplace=True)
+    print(f"{compiled_df[compiled_df['Topic'] == 'missing'].shape[0]} out of {compiled_df.shape[0]} comments are missing topics")
+    # print(compiled_df.head(5))
 
     # remove rows with missing topics
-    res_df = res_df[res_df['Topic']!= 'missing']
+    compiled_df = compiled_df[compiled_df['Topic']!= 'missing']
 
     print("\nCleaning up columns...\n")
-    res_df['total_likes'] = res_df['total_likes'].replace('missing', np.nan)
-    res_df['total_likes'] = res_df['total_likes'].fillna(0).astype(float).round().astype(int)
-    res_df['total_views'] = res_df['total_views'].replace('missing', np.nan)
-    res_df['total_views'] = res_df['total_views'].fillna(0).astype(float).round().astype(int)
-    res_df['Topic'] = res_df['Topic'].astype(int)
+    compiled_df['total_likes'] = compiled_df['total_likes'].replace('missing', np.nan)
+    compiled_df['total_likes'] = compiled_df['total_likes'].fillna(0).astype(float).round().astype(int)
+    compiled_df['total_views'] = compiled_df['total_views'].replace('missing', np.nan)
+    compiled_df['total_views'] = compiled_df['total_views'].fillna(0).astype(float).round().astype(int)
+    compiled_df['Topic'] = compiled_df['Topic'].astype(int)
 
-    res_df.drop(columns=['Document_description', 'Document_name'], inplace=True)
+    compiled_df.drop(columns=['Document_description', 'Document_name'], inplace=True)
 
-    res_df = res_df[[
+    compiled_df = compiled_df[[
         'title',
     	'description',
         'published_date',
@@ -90,43 +90,51 @@ def compile_data(n_articles_to_keep=10, n_comments_to_keep=4):
     	'message_id',
     	'total_views',
     	'total_likes']]
+    
+    return compiled_df
+
+def get_top_articles_df(compiled_df:pd.DataFrame):
 
     # print("\nhighest number comments per conversations:") # recall that this df is at the comment granularity
-    # print(res_df.conversation_id.value_counts().sort_values(ascending=False).head(5))
+    # print(compiled_df.conversation_id.value_counts().sort_values(ascending=False).head(5))
+
     print("\nfiltering to top comments")
 
     # Sort by 'Topic' and 'total_likes', and get the top 10 articles per topic
-    top_articles_df = res_df.sort_values(by=['Topic', 'total_likes'], ascending=[True, False])
-    top_articles_df = top_articles_df.groupby('Topic').head(n_articles_to_keep)
+    top_articles_df = compiled_df.sort_values(by=['Topic', 'total_likes'], ascending=[True, False])
+    top_articles_df = top_articles_df.groupby('Topic').head(N_ARTICLES)
 
     # Filter to keep only comments (assuming comments have a 'conversation_id')
-    comments_df = res_df[res_df['conversation_id'].notna()]
+    comments_df = compiled_df[compiled_df['conversation_id'].notna()]
     # Ensure the comments belong to the top 10 articles using 'canonical_url' as the linking field
     top_comments_df = comments_df[comments_df['conversation_id'].isin(top_articles_df['conversation_id'])]
 
     # Sort by 'conversation_id' and 'total_likes', and get the top 4 comments per article
     top_comments_df = top_comments_df.sort_values(by=['conversation_id', 'total_likes'], ascending=[True, False])
-    top_comments_df = top_comments_df.groupby('conversation_id').head(4) # this is correct
+    top_comments_df = top_comments_df.groupby('conversation_id').head(N_COMMENTS)
 
     # Combine top articles and top comments back into a single DataFrame
-    res_df = top_comments_df.sort_values(by=['Topic', 'conversation_id', 'conv_message_id', 'total_likes'], ascending=[True, True, True, False])
+    top_comments_df_sorted = top_comments_df.sort_values(by=['Topic', 'conversation_id', 'conv_message_id', 'total_likes'], ascending=[True, True, True, False])
 
-    assert res_df.shape[0] == res_df.drop_duplicates().shape[0], "Duplicate rows found"
+    assert top_comments_df_sorted.shape[0] == top_comments_df_sorted.drop_duplicates().shape[0], "Duplicate rows found"
 
-    print("\nwriting to file...\n")
-    res_df.to_csv(ENGAGEMENTS_OUTPUT_FILE_PATH, index=False)
+    # print("\nwriting to file...\n")
+    # top_comments_df_sorted.to_csv(TOPICS_SPREADSHEET_OUTPUT_FILE_PATH, index=False)
 
     # Check if 'Topic' column exists
-    if 'Topic' not in res_df.columns:
+    if 'Topic' not in top_comments_df_sorted.columns:
         raise ValueError("DataFrame does not contain 'Topic' column")
 
-    # Path to save the Excel file, replace CSV extension with XLSX
-    output_file_path = ENGAGEMENTS_OUTPUT_FILE_PATH.replace('csv', 'xlsx')
+    return top_comments_df_sorted
 
+def write_to_excel(top_comments_df_sorted:pd.DataFrame):
+
+    # Path to save the Excel file, replace CSV extension with XLSX
+    output_file_path = TOPICS_SPREADSHEET_OUTPUT_FILE_PATH.replace('csv', 'xlsx')
     # Create a writer object for writing to Excel
     with pd.ExcelWriter(output_file_path) as writer:
         # Get unique topics
-        unique_topics = res_df['Topic'].unique()
+        unique_topics = top_comments_df_sorted['Topic'].unique()
 
         # Write each topic to a separate sheet
         for topic in unique_topics:
@@ -141,18 +149,18 @@ def compile_data(n_articles_to_keep=10, n_comments_to_keep=4):
                 continue
             
             # create a df for each topic
-            topic_df = res_df[res_df['Topic'] == topic]
+            topic_df = top_comments_df_sorted[top_comments_df_sorted['Topic'] == topic]
 
             ### create df of reformated comment-level colmns
             message_level_cols = ['conv_message_id', 'author_id', 'text_content', 'final_state', 'message_id', 'total_views', 'total_likes']
 
             new_col_names = []
-            for n in range(1,n_comments_to_keep+1):
+            for n in range(1,N_COMMENTS+1):
                 for col in message_level_cols:
                     new_col_names.append(f'HEC{n}_{col}')
             
             new_cols_content = topic_df[message_level_cols].values.flatten().tolist() # this is correct
- 
+
             multiplier = topic_df['title'].nunique() # multply to get correct number of rows
             
             assert len(new_col_names) * multiplier == len(new_cols_content), "Column names and content do not match"
@@ -187,28 +195,32 @@ def compile_data(n_articles_to_keep=10, n_comments_to_keep=4):
         if len(writer.sheets) == 0:
             raise Exception("No sheets added. Ensure there is data for at least one topic.")
 
+def create_topics_spreadsheet():
+    compiled_df = compile_data()
+    top_comments_df_sorted = get_top_articles_df(compiled_df)
+    write_to_excel(top_comments_df_sorted)
+
 
 if __name__ == "__main__":
-    EXCEL_FILE_PATH = "data/fox_news_comments.xlsx"
-    SHEET_NAME = "articles_data"
-    NAME_COLUMN_NAME = "title"
-    SUMMARY_COLUMN_NAME = "description"
-    NTOPICS = 21
-    TOPIC_SUMMARY_OUTPUT_FILE_PATH = "outputs/topic_summaries.csv"
-    DOC_TOPIC_OUTPUT_FILE_PATH = "outputs/doc_topic_df.csv"
+    # constants
+    N_ARTICLES=10
+    N_COMMENTS=4
 
+    # input files
+    EXCEL_FILE_PATH = "data/fox_news_comments.xlsx"
     ARTICLE_SHEET_NAME = "articles_data"
     COMMENT_SHEET_NAME = "comments_for_published_articles"
     REACTION_SHEET_NAME = "reaction_count_for_pub_articles"
+    DOC_TOPIC_DF = 'outputs/doc_topic_df.csv'
 
+    # column cleanup
     COMMENT_COLS = ['conversation_id', 'conv_message_id', 'author_id', 'written_date', 'text_content', 'final_state']
     REACTION_COLS = [ 'message_id', 'total_views', 'total_likes']
-    # COMMENT_SHEET_NAME[conv_message_id] matches REACTION_SHEET_NAME[message_id]
+        # note: COMMENT_SHEET_NAME[conv_message_id] matches REACTION_SHEET_NAME[message_id]
     ARTICLE_COLS = ['title', 'published_date', 'description', 'canonical_url', 'conversation_id', 'thumbnail_url'] #[article_thumbnail_alt_text, article_text, article_author]
 
+    # final save location
+    TOPICS_SPREADSHEET_OUTPUT_FILE_PATH = 'outputs/top_comments_df_sorted.csv'
 
-    ENGAGEMENTS_OUTPUT_FILE_PATH = 'outputs/engagements.csv'
-    DOC_TOPIC_DF = 'outputs/doc_topic_df.csv'
-    compile_data()
+    create_topics_spreadsheet()
 # issue appears to be that topic modeling put many articles into the -1 topic, which is not included in the topic summary, and this results in many nulls when joined
-# next: regroup columns
