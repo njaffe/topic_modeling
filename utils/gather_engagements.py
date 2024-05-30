@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+from collections import defaultdict
 
 def read_cols(
     excel_file_path:str, 
@@ -23,7 +23,7 @@ def read_cols(
     print(df.columns)
     return df
 
-def compile_data(n_comments_to_keep=4):
+def compile_data(n_articles_to_keep=10, n_comments_to_keep=4):
 
     print("\nreading data...\n")
     comment_data = read_cols(
@@ -91,13 +91,13 @@ def compile_data(n_comments_to_keep=4):
     	'total_views',
     	'total_likes']]
 
-    print("\nhighest number comments per conversations:") # recall that this df is at the comment granularity
-    print(res_df.conversation_id.value_counts().sort_values(ascending=False).head(5))
+    # print("\nhighest number comments per conversations:") # recall that this df is at the comment granularity
+    # print(res_df.conversation_id.value_counts().sort_values(ascending=False).head(5))
     print("\nfiltering to top comments")
 
     # Sort by 'Topic' and 'total_likes', and get the top 10 articles per topic
     top_articles_df = res_df.sort_values(by=['Topic', 'total_likes'], ascending=[True, False])
-    top_articles_df = top_articles_df.groupby('Topic').head(10) # this is correct
+    top_articles_df = top_articles_df.groupby('Topic').head(n_articles_to_keep)
 
     # Filter to keep only comments (assuming comments have a 'conversation_id')
     comments_df = res_df[res_df['conversation_id'].notna()]
@@ -108,19 +108,10 @@ def compile_data(n_comments_to_keep=4):
     top_comments_df = top_comments_df.sort_values(by=['conversation_id', 'total_likes'], ascending=[True, False])
     top_comments_df = top_comments_df.groupby('conversation_id').head(4) # this is correct
 
-    assert top_comments_df.shape[0] == top_comments_df.drop_duplicates().shape[0], "Duplicate rows found"
-
     # Combine top articles and top comments back into a single DataFrame
-    # THIS IS PROBLEM AREA
     res_df = top_comments_df.sort_values(by=['Topic', 'conversation_id', 'conv_message_id', 'total_likes'], ascending=[True, True, True, False])
 
     assert res_df.shape[0] == res_df.drop_duplicates().shape[0], "Duplicate rows found"
-    # print("-----------------------------------")
-    # print(res_df.head())
-    # print("-----------------------------------")
-
-    # assert res_df.shape[0] == (NTOPICS-1) * n_comments_to_keep, \
-    #     f"Expected {NTOPICS * n_comments_to_keep} rows, got {res_df.shape[0]}"
 
     print("\nwriting to file...\n")
     res_df.to_csv(ENGAGEMENTS_OUTPUT_FILE_PATH, index=False)
@@ -149,9 +140,41 @@ def compile_data(n_comments_to_keep=4):
                 print("Empty topic name after stripping, skipping.")
                 continue
             
+            # create a df for each topic
             topic_df = res_df[res_df['Topic'] == topic]
-            if not topic_df.empty:
-                topic_df.to_excel(writer, sheet_name=sanitized_topic[:31], index=False)  # Excel sheet names must be <= 31 chars
+
+            ### create df of reformated comment-level colmns
+            message_level_cols = ['conv_message_id', 'author_id', 'text_content', 'final_state', 'message_id', 'total_views', 'total_likes']
+
+            new_col_names = []
+            for n in range(1,n_comments_to_keep+1):
+                for col in message_level_cols:
+                    new_col_names.append(f'HEC{n}_{col}')
+            
+            new_cols_content = topic_df[message_level_cols].values.flatten().tolist() # this is correct
+ 
+            multiplier = topic_df['title'].nunique() # multply to get correct number of rows
+            
+            assert len(new_col_names) * multiplier == len(new_cols_content), "Column names and content do not match"
+
+            # Create a defaultdict with lists as default values
+            d = defaultdict(list)
+
+            # Populate the dictionary
+            for key, value in zip(new_col_names * multiplier, new_cols_content):
+                d[key].append(value)
+
+            reformatted_comment_level_dict = dict(d)
+            reformatted_comment_level_df = pd.DataFrame(reformatted_comment_level_dict)
+            reformatted_comment_level_df.reset_index(drop=True, inplace=True)
+
+            # join back with other columns
+            topic_df_article_level = topic_df.drop(columns=message_level_cols).drop_duplicates()
+            topic_df_article_level = topic_df_article_level.reset_index(drop=True, inplace=True)
+            res_reformatted_df = pd.concat([topic_df_article_level, reformatted_comment_level_df], axis=1, join='outer', ignore_index=False)
+
+            if not res_reformatted_df.empty:
+                res_reformatted_df.to_excel(writer, sheet_name=sanitized_topic[:31], index=False)  # Excel sheet names must be <= 31 chars
             else:
                 print(f"No data for topic '{topic}', skipping sheet.")
 
@@ -183,3 +206,4 @@ if __name__ == "__main__":
     DOC_TOPIC_DF = 'outputs/doc_topic_df.csv'
     compile_data()
 # issue appears to be that topic modeling put many articles into the -1 topic, which is not included in the topic summary, and this results in many nulls when joined
+# next: regroup columns
