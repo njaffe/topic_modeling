@@ -46,10 +46,10 @@ def compile_data(verbose=False):
 
     print("\nmerging data...\n")
     compiled_df = comment_data \
-        .merge(reaction_data, how='right', left_on='conv_message_id', right_on='message_id') \
+        .merge(reaction_data, how='left', left_on='conv_message_id', right_on='message_id') \
         .merge(article_data, how='left', on='conversation_id').dropna()
     
-    compiled_df.to_csv('intermediate_check_compiled.csv', index=False)
+    # compiled_df.to_csv('intermediate_check_compiled.csv', index=False)
     
     return compiled_df['description'].unique().tolist()
 
