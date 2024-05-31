@@ -53,10 +53,6 @@ def compile_data(verbose=False):
         print(doc_topic_df.isna().sum())
         print(doc_topic_df.duplicated().sum())
 
-    # print("\nchecking for duplicates...\n")
-    # article_data = article_data.drop_duplicates(subset=['canonical_url', 'title'])
-    # comment_data = comment_data.drop_duplicates(subset=['conv_message_id'])
-
     print("\nmerging data...\n")
     compiled_df = comment_data \
         .merge(reaction_data, how='right', left_on='conv_message_id', right_on='message_id') \
@@ -107,7 +103,7 @@ def compile_data(verbose=False):
     compiled_df['total_views'] = compiled_df['total_views'].fillna(0).astype(float).round().astype(int)
     compiled_df['Topic'] = compiled_df['Topic'].astype(int)
 
-    compiled_df.drop(columns=['Document_description', 'Document_name'], inplace=True)
+    compiled_df.drop(columns=['Document_description'], inplace=True)
 
     compiled_df = compiled_df[[
         'title',
@@ -129,9 +125,6 @@ def compile_data(verbose=False):
     return compiled_df
 
 def get_top_articles_df(compiled_df:pd.DataFrame):
-
-    # print("\nhighest number comments per conversations:") # recall that this df is at the comment granularity
-    # print(compiled_df.conversation_id.value_counts().sort_values(ascending=False).head(5))
 
     print("\nfiltering to top comments")
 
@@ -165,6 +158,9 @@ def get_top_articles_df(compiled_df:pd.DataFrame):
     return top_comments_df_sorted
 
 def write_to_excel(top_comments_df_sorted:pd.DataFrame):
+    """
+    Write the top comments DataFrame to an Excel file with each topic in a separate sheet.
+    """
 
     # Path to save the Excel file, replace CSV extension with XLSX
     output_file_path = TOPICS_SPREADSHEET_OUTPUT_FILE_PATH.replace('csv', 'xlsx')
@@ -243,14 +239,14 @@ if __name__ == "__main__":
     N_ARTICLES=10
     N_COMMENTS=4
     VERBOSE = True
+    
+    DOC_TOPIC_DF="outputs/doc_topic_df_filtered.csv"
 
-    # input files
     EXCEL_FILE_PATH = "data/fox_news_comments.xlsx"
     ARTICLE_SHEET_NAME = "articles_data"
     COMMENT_SHEET_NAME = "comments_for_published_articles"
     REACTION_SHEET_NAME = "reaction_count_for_pub_articles"
-    # DOC_TOPIC_DF = 'outputs/doc_topic_df.csv'
-    DOC_TOPIC_DF = 'outputs/doc_topic_df_openai.csv'
+
 
     # column cleanup
     COMMENT_COLS = ['conversation_id', 'conv_message_id', 'author_id', 'written_date', 'text_content', 'final_state']

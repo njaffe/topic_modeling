@@ -114,9 +114,7 @@ def run_topic_model(
     print("\nNumbers per topic:")
     print(doc_topic_df['Topic'].value_counts().sort_index())
 
-    topic_number_dict = doc_topic_df['Topic'].value_counts().to_dict()    
-    
-    doc_topic_df = doc_topic_df[doc_topic_df['Topic'] != -1]  # remove docs that don't belong to any topic
+    topic_number_dict = doc_topic_df['Topic'].value_counts().to_dict() 
 
     if verbose:
         print("\ndoc_topic_df:\n")
@@ -126,7 +124,7 @@ def run_topic_model(
     topic_summary_df = topic_model.get_topic_info()  # This gives a summary of all topics
 
     topic_summary_df = topic_summary_df[topic_summary_df['Count'] > 0]  # remove topics with no docs
-    topic_summary_df = topic_summary_df[topic_summary_df['Topic'] != -1]  # remove docs that don't belong to any topic
+    # topic_summary_df = topic_summary_df[topic_summary_df['Topic'] != -1]  # remove docs that don't belong to any topic
     if verbose:
         print("\ntopic_summary_df:")
         print(topic_summary_df.head(5))
@@ -173,7 +171,7 @@ if __name__ == "__main__":
     ZEROSHOT_MIN_SIMILARITY = 0.4
     MIN_SAMPLES_CORE_POINT = 1 # chosen with parameter tuning
 
-    TOPIC_SUMMARY_OUTPUT_FILE_PATH = "outputs/topic_summaries.csv"
+    TOPIC_SUMMARY_OUTPUT_FILE_PATH = "outputs/topic_summaries_openai.csv"
     DOC_TOPIC_OUTPUT_FILE_PATH = "outputs/doc_topic_df_openai.csv"
 
     ARTICLE_SHEET_NAME = "articles_data"
