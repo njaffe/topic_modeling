@@ -5,6 +5,17 @@ from utils.reader import read_cols
 
 
 def compile_data(verbose=False):
+    """
+    Compiles data from several sources including comments, reactions, and articles. It merges these data sources based on common keys,
+    filters out blocked comments, handles missing values, and computes overlaps between different data segments. The function also
+    prints detailed logs if verbose is True.
+
+    Parameters:
+    - verbose (bool): If True, additional debug information is printed to help trace the data compilation process.
+
+    Returns:
+    - DataFrame: A compiled DataFrame with cleaned and merged data ready for further processing.
+    """
 
     print("\nreading data...\n")
     comment_data = read_cols(
@@ -106,6 +117,17 @@ def compile_data(verbose=False):
     return compiled_df
 
 def get_top_articles_df(compiled_df:pd.DataFrame):
+    """
+    Filters the compiled DataFrame to get the top articles based on likes within each topic. It further extracts the top comments
+    for these articles based on likes, ensuring only comments linked to top articles are considered. Assumes articles and comments
+    are differentiated by the presence of a 'conversation_id'.
+
+    Parameters:
+    - compiled_df (pd.DataFrame): The DataFrame containing combined article and comment data.
+
+    Returns:
+    - DataFrame: A DataFrame containing the sorted top comments for top articles organized by topic and likes.
+    """
 
     print("\nfiltering to top comments")
 
@@ -140,7 +162,14 @@ def get_top_articles_df(compiled_df:pd.DataFrame):
 
 def write_to_excel(top_comments_df_sorted:pd.DataFrame):
     """
-    Write the top comments DataFrame to an Excel file with each topic in a separate sheet.
+    Writes the sorted top comments DataFrame to an Excel file with each topic in a separate sheet. Handles the organization of comments
+    per article within each topic and ensures each sheet name conforms to Excel's limitations.
+
+    Parameters:
+    - top_comments_df_sorted (pd.DataFrame): DataFrame containing sorted top comments.
+
+    Outputs:
+    - Excel file: An Excel file where each sheet corresponds to a topic and contains the formatted top comments for that topic.
     """
 
     # Path to save the Excel file, replace CSV extension with XLSX
@@ -210,32 +239,41 @@ def write_to_excel(top_comments_df_sorted:pd.DataFrame):
             raise Exception("No sheets added. Ensure there is data for at least one topic.")
 
 def create_topics_spreadsheet():
+    """
+    Orchestrates the creation of a topics spreadsheet by compiling data, filtering top articles and comments, and writing the results
+    to an Excel file. Utilizes the other functions defined within the script to perform each step of the process.
+
+    Outputs:
+    - Excel file: An Excel file containing top comments organized by topics and articles, saved to the path specified by TOPICS_SPREADSHEET_OUTPUT_FILE_PATH.
+    """
+
     compiled_df = compile_data(verbose=VERBOSE)
     top_comments_df_sorted = get_top_articles_df(compiled_df)
     write_to_excel(top_comments_df_sorted)
 
 
 if __name__ == "__main__":
-    # constants
+    """
+    Main execution block that initializes constants, compiles data from specified Excel files, filters top articles and comments,
+    and writes the results to an Excel file. The process is verbose, providing detailed logs of the operations performed.
+    """
+    # constants initialization
     N_ARTICLES=10
     N_COMMENTS=4
     VERBOSE = True
     
     DOC_TOPIC_DF="outputs/doc_topic_df_filtered.csv"
-
     EXCEL_FILE_PATH = "data/fox_news_comments.xlsx"
     ARTICLE_SHEET_NAME = "articles_data"
     COMMENT_SHEET_NAME = "comments_for_published_articles"
     REACTION_SHEET_NAME = "reaction_count_for_pub_articles"
 
-
-    # column cleanup
+    # column configurations for each dataset
     COMMENT_COLS = ['conversation_id', 'conv_message_id', 'author_id', 'written_date', 'text_content', 'final_state']
     REACTION_COLS = [ 'message_id', 'total_views', 'total_likes']
-        # note: COMMENT_SHEET_NAME[conv_message_id] matches REACTION_SHEET_NAME[message_id]
-    ARTICLE_COLS = ['title', 'published_date', 'description', 'canonical_url', 'conversation_id', 'thumbnail_url'] #[article_thumbnail_alt_text, article_text, article_author]
+    ARTICLE_COLS = ['title', 'published_date', 'description', 'canonical_url', 'conversation_id', 'thumbnail_url']
 
-    # final save location
+    # output path for the final Excel file
     TOPICS_SPREADSHEET_OUTPUT_FILE_PATH = 'outputs/top_comments_df_sorted.csv'
 
     create_topics_spreadsheet()

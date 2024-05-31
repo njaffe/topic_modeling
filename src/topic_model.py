@@ -10,6 +10,16 @@ from collections import defaultdict
 from utils.reader import read_cols
 
 def compile_data(verbose=False):
+    """
+    Reads and compiles data from Excel sheets, filters out blocked comments, and merges comment, reaction,
+    and article data into a single DataFrame, which is then saved to a CSV file.
+
+    Parameters:
+    - verbose (bool): If True, prints additional information about the process.
+
+    Returns:
+    - list: A list of unique descriptions extracted from the compiled DataFrame.
+    """
 
     print("\nreading data...\n")
     comment_data = read_cols(
@@ -50,9 +60,17 @@ def run_topic_model(
     doc_topic_output_file_path='outputs/doc_topic_df.csv'):
 
     """
-    inputs:
-    name_summary_dict: dictionary with keys as doc names and values as summaries
-    n_topics: number of topics to generate
+    Performs topic modeling using the BERTopic algorithm on a list of document summaries. Generates a specified number of topics, creates and saves two CSV files containing document topics and topic summaries.
+
+    Parameters:
+    - doc_summaries (list): List of document summaries to model.
+    - n_topics (int): Number of topics to generate.
+    - verbose (bool): If True, prints additional details about the process.
+    - topic_summary_output_file_path (str): Path to save the topic summaries CSV file.
+    - doc_topic_output_file_path (str): Path to save the document topics CSV file.
+
+    Outputs:
+    - Two CSV files: One containing a summary of topics and another detailing the topics assigned to each document.
     """
 
     print("\nPerforming topic modeling...\n")
@@ -91,11 +109,31 @@ def run_topic_model(
     print(f"\nSaved topic summaries to {topic_summary_output_file_path}")
 
 class OpenAIEmbedder:
+    """
+    A class to handle the embedding of documents using OpenAI's models.
+
+    Attributes:
+    - api_key (str): OpenAI API key for authenticating requests.
+    - model (str): The specific OpenAI model to use for embedding.
+
+    Methods:
+    - fit_transform(documents): Embeds a list of documents and returns their embeddings.
+    """
+
     def __init__(self, api_key, model):
         self.api_key = api_key
         self.model = model
 
     def fit_transform(self, documents):
+        """
+        Transforms documents into embeddings using an OpenAI model.
+
+        Parameters:
+        - documents (list): List of documents to embed.
+
+        Returns:
+        - list: List of embeddings for the input documents.
+        """
         embeddings = []
         for doc in documents:
             response = openai.Embedding.create(
@@ -119,10 +157,22 @@ def run_topic_model_openai(
     doc_topic_output_file_path='outputs/doc_topic_df.csv'):
 
     """
-    inputs:
-    name_summary_dict: dictionary with keys as doc names and values as summaries
-    n_topics: number of topics to generate
-    output_file_path: path to save topic summaries
+    Performs topic modeling using OpenAI embeddings and HDBSCAN clustering. Saves the resulting document-topic mappings and topic summaries to CSV files.
+
+    Parameters:
+    - doc_summaries (list): Document summaries to model.
+    - n_topics (int): Total number of topics to generate.
+    - min_topic_size (int): Minimum cluster size for HDBSCAN.
+    - zeroshot_min_similarity (float): Not used currently.
+    - min_samples_core_point (int): Minimum samples for a point to be considered a core point.
+    - verbose (bool): If True, prints detailed output about the process.
+    - openai_embedder (OpenAIEmbedder): OpenAI embedder instance for generating embeddings.
+    - model (str): OpenAI model to use for embeddings.
+    - topic_summary_output_file_path (str): Path to save the topic summaries CSV file.
+    - doc_topic_output_file_path (str): Path to save the document topics CSV file.
+
+    Outputs:
+    - Two CSV files: One for document-topic mappings, and another for topic summaries.
     """
 
     print("\nPerforming topic modeling...\n")
@@ -181,10 +231,15 @@ def topic_model_names_summaries(
     api_key=None,
     model="text-embedding-3-large"):
     """
-    inputs:
-    open_ai: boolean indicating whether to use OpenAI
-    api_key: OpenAI api key
-    model: OpenAI model to use
+    Orchestrates the topic modeling process using either OpenAI or BERTopic based on a flag. Retrieves data, performs topic modeling, and saves the outputs.
+
+    Parameters:
+    - open_ai (bool): Flag to determine if OpenAI's embedding model should be used.
+    - api_key (str): API key for OpenAI.
+    - model (str): The OpenAI model to use if open_ai is True.
+
+    Outputs:
+    - CSV files containing document-topic mappings and topic summaries.
     """
 
     doc_summaries = compile_data()
