@@ -9,6 +9,7 @@ from hdbscan import HDBSCAN
 from collections import defaultdict
 from utils.reader import read_cols
 
+
 def compile_data(verbose=False):
     """
     Reads and compiles data from Excel sheets, filters out blocked comments, and merges comment, reaction,
@@ -138,7 +139,7 @@ class OpenAIEmbedder:
         for doc in documents:
             response = openai.Embedding.create(
                 input=doc,
-                model=self.model,  # Specify the OpenAI embedding model
+                model=self.model,
                 api_key=self.api_key
             )
             embeddings.append(response['data']['embeddings'])
